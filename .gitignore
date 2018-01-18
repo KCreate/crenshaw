@@ -1,0 +1,9 @@
+# FPC stuff
+code/compiler
+code/compiler.o
+
+# Vim stuff
+*.swp
+*.swo
+
+.git
