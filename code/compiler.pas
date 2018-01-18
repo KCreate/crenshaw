@@ -5,6 +5,7 @@ program Cradle;
 { Constant Declarations }
 
 const TAB = ^I;
+const CR = ^M;
 
 {--------------------------------------------------------------}
 { Variable Declarations }
@@ -47,15 +48,6 @@ begin
    Abort(s + ' Expected');
 end;
 
-{--------------------------------------------------------------}
-{ Match a Specific Input Character }
-
-procedure Match(x: char);
-begin
-   if Look = x then GetChar
-   else Expected('''' + x + '''');
-end;
-
 
 {--------------------------------------------------------------}
 { Recognize an Alpha Character }
@@ -82,26 +74,77 @@ begin
    IsDigit := c in ['0'..'9'];
 end;
 
+{--------------------------------------------------------------}
+{ Recognize an Alphanumeric }
+
+function IsAlNum(c: char): boolean;
+begin
+   IsAlNum := IsAlpha(c) or IsDigit(c);
+end;
+{--------------------------------------------------------------}
+
+{--------------------------------------------------------------}
+{ Recognize White Space }
+
+function IsWhite(c: char): boolean;
+begin
+   IsWhite := c in [' ', TAB];
+end;
+{--------------------------------------------------------------}
+
+{--------------------------------------------------------------}
+{ Skip Over Leading White Space }
+
+procedure SkipWhite;
+begin
+   while IsWhite(Look) do
+      GetChar;
+end;
+{--------------------------------------------------------------}
+
+{--------------------------------------------------------------}
+{ Match a Specific Input Character }
+
+procedure Match(x: char);
+begin
+   if Look <> x then Expected('''' + x + '''')
+   else begin
+      GetChar;
+      SkipWhite;
+   end;
+end;
 
 {--------------------------------------------------------------}
 { Get an Identifier }
 
-function GetName: char;
+function GetName: string;
+var Token: string;
 begin
+   Token := '';
    if not IsAlpha(Look) then Expected('Name');
-   GetName := UpCase(Look);
-   GetChar;
+   while IsAlNum(Look) do begin
+      Token := Token + UpCase(Look);
+      GetChar;
+   end;
+   GetName := Token;
+   SkipWhite;
 end;
 
 
 {--------------------------------------------------------------}
 { Get a Number }
 
-function GetNum: char;
+function GetNum: string;
+var Value: string;
 begin
+   Value := '';
    if not IsDigit(Look) then Expected('Integer');
-   GetNum := Look;
-   GetChar;
+   while IsDigit(Look) do begin
+      Value := Value + Look;
+      GetChar;
+   end;
+   GetNum := Value;
+   SkipWhite;
 end;
 
 
@@ -131,6 +174,7 @@ end;
 procedure Init;
 begin
    GetChar;
+   SkipWhite;
 end;
 {--------------------------------------------------------------}
 
@@ -138,7 +182,7 @@ end;
 { Parse and Translate an Identifier }
 
 procedure Ident;
-var Name: char;
+var Name: string;
 begin
    Name := GetName;
    if Look = '(' then begin
@@ -254,11 +298,27 @@ begin
 end;
 {--------------------------------------------------------------}
 
+{---------------------------------------------------------------}
+{ Parse and Translate an Assignment Statement }
+
+procedure Assignment;
+var Name: string;
+begin
+   Name := GetName;
+   Match('=');
+   Expression;
+   EmitLn('LEA ' + Name + '(PC),A0');
+   EmitLn('MOVE D0,(A0)');
+end;
+{--------------------------------------------------------------}
+
 {--------------------------------------------------------------}
 { Main Program }
 
 begin
    Init;
-   Expression;
+   Assignment;
+   { Commented out because I couldn't figure out how to pass a newline in the shell }
+   { if Look <> CR then Expected('Newline'); }
 end.
 {--------------------------------------------------------------}
